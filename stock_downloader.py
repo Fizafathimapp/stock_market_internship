@@ -36,12 +36,20 @@ else:
 
     # Keep only required columns
     data = data[["Date", "Open", "High", "Low", "Close", "Volume"]]
+print("\nDataset Information:\n")
+print(data.info())
 
-    print("\n✅ Clean Data:\n")
-    print(data)
+print("\nMissing Values:\n")
+print(data.isnull().sum())
+
+print("\nStatistical Summary:\n")
+print(data.describe())
+
+print("\n✅ Clean Data:\n")
+print(data)
 
     # Save CSV
-    filename = symbol.replace(".", "_") + "_clean.csv"
-    data.to_csv(filename, index=False)
+filename = symbol.replace(".", "_") + "_clean.csv"
+data.to_csv(filename, index=False)
 
-    print(f"\n✅ CSV saved as {filename}")
+print(f"\n✅ CSV saved as {filename}")
