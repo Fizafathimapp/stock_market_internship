@@ -1,6 +1,9 @@
 print("Program started")
 
 import yfinance as yf
+import ta
+
+print("installed")
 
 # User input
 symbol = input("Enter company symbol (example: COALINDIA.NS): ")
@@ -48,7 +51,52 @@ print(data.describe())
 print("\n✅ Clean Data:\n")
 print(data)
 
-    # Save CSV
+# Remove duplicate rows
+data.drop_duplicates(inplace=True)
+
+# Fill missing values if any
+data.fillna(method='ffill', inplace=True)
+
+print("\nDataset Shape:")
+print(data.shape)
+
+# Calculate SMA
+data['SMA20']=data['Close'].rolling(20).mean()
+
+data['SMA50']=data['Close'].rolling(50).mean()
+
+# Calculate EMA
+data['EMA20']=data['Close'].ewm(span=20).mean()
+
+data['EMA50']=data['Close'].ewm(span=50).mean()
+
+# Calculate RSI
+from ta.momentum import RSIIndicator
+
+rsi=RSIIndicator(close=data['Close'])
+
+data['RSI']=rsi.rsi()
+
+# Calculate MACD
+from ta.trend import MACD
+
+macd=MACD(data['Close'])
+
+data['MACD']=macd.macd()
+
+# Calculate Bollinger Bands
+from ta.volatility import BollingerBands
+
+bb=BollingerBands(data['Close'])
+
+data['Upper']=bb.bollinger_hband()
+
+data['Lower']=bb.bollinger_lband()
+
+#verify
+print(data.tail())
+
+# Save CSV
 filename = symbol.replace(".", "_") + "_clean.csv"
 data.to_csv(filename, index=False)
 
