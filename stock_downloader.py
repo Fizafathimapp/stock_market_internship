@@ -2,6 +2,7 @@ print("Program started")
 
 import yfinance as yf
 import ta
+from statsmodels.tsa.arima.model import ARIMA
 
 print("packages installed successfully")
 
@@ -149,6 +150,16 @@ else:
     print(
 data[['Close','SMA20','SMA50','EMA20','EMA50','RSI','MACD','Upper','Lower']].tail()
 )
+   
+    import statsmodels
+
+    print("Statsmodels installed successfully")
+    model = ARIMA(data["Close"], order=(5,1,0))
+    model_fit = model.fit()
+    print(model_fit.summary())
+
+    forecast = model_fit.forecast(steps=10)
+    print(forecast)
 
 # Save CSV
     filename = symbol.replace(".", "_") + "_clean.csv"
