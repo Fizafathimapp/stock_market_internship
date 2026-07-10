@@ -97,6 +97,29 @@ else:
 
     import matplotlib.pyplot as plt
 
+# Calculate Daily Return
+    data["Daily Return"] = data["Close"].pct_change()
+
+# Calculate Volatility (20-day rolling standard deviation)
+    data["Volatility"] = data["Daily Return"].rolling(window=20).std()
+
+# Display basic statistics
+    print("\n========== EDA RESULTS ==========")
+
+    print(f"\nAverage Closing Price : {data['Close'].mean():.2f}")
+
+    print(f"Highest Closing Price : {data['Close'].max():.2f}")
+
+    print(f"Lowest Closing Price : {data['Close'].min():.2f}")
+
+    print(f"Average Trading Volume : {data['Volume'].mean():.2f}")
+
+    print("\nDaily Return (Last 5 Days):")
+    print(data[["Date","Daily Return"]].tail())
+
+    print("\nVolatility (Last 5 Days):")
+    print(data[["Date","Volatility"]].tail())
+
 # Plotting closing price
     plt.figure(figsize=(12,6))
     plt.plot(data['Date'], data['Close'])
@@ -128,6 +151,7 @@ else:
     plt.title("Exponential Moving Averages")
     plt.legend()
     plt.grid(True)
+    plt.savefig("ema_plot.png")
 
     plt.show()
 
@@ -160,6 +184,15 @@ data[['Close','SMA20','SMA50','EMA20','EMA50','RSI','MACD','Upper','Lower']].tai
 
     forecast = model_fit.forecast(steps=10)
     print(forecast)
+    import pandas as pd
+
+    forecast_df = pd.DataFrame({
+    "Forecast": forecast
+})
+
+    forecast_df.to_csv("forecast.csv", index=False)
+
+    print("\nForecast saved as forecast.csv")
 
 # Save CSV
     filename = symbol.replace(".", "_") + "_clean.csv"
