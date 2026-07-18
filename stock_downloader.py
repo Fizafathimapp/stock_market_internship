@@ -2,7 +2,23 @@ print("Program started")
 
 import yfinance as yf
 import ta
+import matplotlib.pyplot as plt
+import pandas as pd
+import statsmodels
+import numpy as np
+
+
+from ta.momentum import RSIIndicator
+from ta.trend import MACD
+from ta.volatility import BollingerBands
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
 from statsmodels.tsa.arima.model import ARIMA
+from sklearn.metrics import mean_squared_error
+
 
 print("packages installed successfully")
 
@@ -73,21 +89,18 @@ else:
     data['EMA50']=data['Close'].ewm(span=50).mean()
 
 # Calculate RSI
-    from ta.momentum import RSIIndicator
-
+    
     rsi=RSIIndicator(close=data['Close'])
 
     data['RSI']=rsi.rsi()
 
 # Calculate MACD
-    from ta.trend import MACD
 
     macd=MACD(data['Close'])
 
     data['MACD']=macd.macd()
 
 # Calculate Bollinger Bands
-    from ta.volatility import BollingerBands
 
     bb=BollingerBands(data['Close'])
 
@@ -95,7 +108,9 @@ else:
 
     data['Lower']=bb.bollinger_lband()
 
-    import matplotlib.pyplot as plt
+    data.to_csv("feature_engineered_data.csv", index=False)
+
+    print("Feature engineered dataset saved.")
 
 # Calculate Daily Return
     data["Daily Return"] = data["Close"].pct_change()
@@ -174,8 +189,6 @@ else:
     print(
 data[['Close','SMA20','SMA50','EMA20','EMA50','RSI','MACD','Upper','Lower']].tail()
 )
-   
-    import statsmodels
 
     print("Statsmodels installed successfully")
     model = ARIMA(data["Close"], order=(5,1,0))
@@ -184,7 +197,6 @@ data[['Close','SMA20','SMA50','EMA20','EMA50','RSI','MACD','Upper','Lower']].tai
 
     forecast = model_fit.forecast(steps=10)
     print(forecast)
-    import pandas as pd
 
     forecast_df = pd.DataFrame({
     "Forecast": forecast
@@ -193,6 +205,75 @@ data[['Close','SMA20','SMA50','EMA20','EMA50','RSI','MACD','Upper','Lower']].tai
     forecast_df.to_csv("forecast.csv", index=False)
 
     print("\nForecast saved as forecast.csv")
+
+    print("\nPreparing data for LSTM...\n")
+
+# Normalize Close prices
+    scaler = MinMaxScaler(feature_range=(0,1))
+    scaled_data = scaler.fit_transform(data[['Close']])
+
+    print("Scaled Data Shape:", scaled_data.shape)
+
+    # Create sequences
+    X = []
+    y = []
+
+    window_size = 60
+
+    for i in range(window_size, len(scaled_data)):
+        X.append(scaled_data[i-window_size:i, 0])
+        y.append(scaled_data[i, 0])
+
+    X = np.array(X)
+    y = np.array(y)
+
+    print("X Shape:", X.shape)
+    print("y Shape:", y.shape)
+
+    # Reshape for LSTM
+    X = X.reshape((X.shape[0], X.shape[1], 1))
+
+    print("Reshaped X:", X.shape)
+
+    # Train-Test Split
+    split = int(len(X) * 0.8)
+
+    X_train = X[:split]
+    X_test = X[split:]
+
+    y_train = y[:split]
+    y_test = y[split:]
+
+    print("Training Data:", X_train.shape)
+    print("Testing Data:", X_test.shape)
+
+    model = Sequential()
+
+    model.add(LSTM(
+50,
+return_sequences=True,
+input_shape=(X_train.shape[1],1)
+))
+
+    model.add(Dropout(0.2))
+
+    model.add(LSTM(50))
+
+    model.add(Dense(1))
+
+    model.compile(optimizer='adam',loss='mean_squared_error')
+
+    history = model.fit(X_train,y_train,epochs=20,batch_size=32,validation_data=(X_test,y_test))
+
+    predictions = model.predict(X_test)
+
+    predictions = scaler.inverse_transform(predictions)
+
+    actual = scaler.inverse_transform(y_test.reshape(-1,1))
+
+    rmse = np.sqrt(mean_squared_error(actual,predictions))
+
+    print("RMSE =",rmse)
 
 # Save CSV
     filename = symbol.replace(".", "_") + "_clean.csv"
